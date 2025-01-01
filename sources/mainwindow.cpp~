@@ -1,0 +1,171 @@
+#include "mainwindow.h"
+#include "./ui_mainwindow.h"
+#include <QScreen>
+#include <iostream>
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow),
+    main (new QWidget),
+    myGrid (new Grid(main)),
+    vBox (new QVBoxLayout),
+    buttLayout (new QHBoxLayout),
+    hBox (new QHBoxLayout),
+    controlsBox (new QVBoxLayout),
+    addButt (new QPushButton),
+    fullScreenButt (new QPushButton),
+    minimizeButt (new QPushButton),
+    brightnessSpin (new QSpinBox),
+    contrastSpin (new QSpinBox),
+    winLowSpin (new QSpinBox),
+    winHighSpin (new QSpinBox),
+    windowSlider ( new QRangeSlider)
+{
+    ui->setupUi(this);
+    setCentralWidget(main);
+    main->setLayout(vBox);
+    buttLayout->addWidget(addButt);
+    buttLayout->addWidget(fullScreenButt);
+    buttLayout->addWidget(minimizeButt);
+    vBox->addLayout(buttLayout, Qt::AlignTop);
+    vBox->addLayout(hBox, Qt::AlignBottom);
+
+
+    brightnessSpin->setRange(-500, 500);
+    brightnessSpin->setValue(0);
+    brightnessSpin->setSingleStep(1);
+    QObject::connect(brightnessSpin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int value) {
+        set_brightness(value);
+    });
+
+    contrastSpin->setRange(10, 300);
+    contrastSpin->setValue(100);
+    contrastSpin->setSingleStep(5);
+    QObject::connect(contrastSpin, QOverload<int>::of(&QSpinBox::valueChanged), [this](int value) {
+        set_contrast(value);
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+    controlsBox->addWidget(brightnessSpin);
+    controlsBox->addWidget(contrastSpin);
+
+
+
+
+
+
+
+    isFullScreen = true;
+    isMaximized = false;
+
+    int winWidth = this->width();   // Get the width of the main window
+    int winHeight = this->height();
+    //std::cerr << "W Width: " << winWidth << " WHeight: " << winHeight << std::endl;
+
+    QSize currentSize = main->size(); // Gets the current size as a QSize object
+    int currentWidth = main->width(); // Gets the current width
+    int currentHeight = main->height();
+    //std::cerr << "Width: " << currentWidth << " Height: " << currentHeight << std::endl;
+
+      // Start the Python interpreter
+
+    myGrid->show();
+    hBox->addWidget(myGrid);
+    hBox->addLayout(controlsBox);
+
+    myGrid->setMaximumSize(int(0.8 * currentWidth), int(0.9 * currentHeight));
+    addButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+    fullScreenButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+    minimizeButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+
+    addButt->setText("Add");
+    connect(addButt, &QPushButton::clicked, this, [=]() {
+        myGrid->read_dicom("C:/Users/nicka/Pictures/Dicom/Sources/0002.DCM");
+    });
+
+    fullScreenButt->setText("Exit FScrn");
+    connect(fullScreenButt, &QPushButton::clicked, this, [=]() {
+        fullscreen();
+    });
+
+    minimizeButt->setText("Minimize");
+    connect(minimizeButt, &QPushButton::clicked, this, [=]() {
+        minimize();
+    });
+
+    showFullScreen();
+}
+
+void MainWindow::set_brightness(int val){
+    for (Tab* tab : myGrid->tabList){
+        if (tab->selected){
+            tab->change_brightness(val);
+        }
+    }
+}
+
+void MainWindow::set_contrast(int val){
+    for (Tab* tab : myGrid->tabList){
+        if (tab->selected){
+            tab->change_contrast(val);
+        }
+    }
+}
+
+
+void MainWindow::fullscreen(){
+    if (isFullScreen){
+        fullScreenButt->setText("Fullscreen");
+        showMaximized();
+        main->resize(this->size());
+    } else {
+        fullScreenButt->setText("Exit FScrn");
+        showFullScreen();
+    }
+    isFullScreen = !isFullScreen;
+}
+
+void MainWindow::minimize(){
+    showMinimized();
+    minimizeButt->setText("Minimize");
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event){
+    QMainWindow::resizeEvent(event); // Ensure base class handles the event
+
+    int winWidth = this->width();
+    int winHeight = this->height();
+    //std::cerr << "W Width: " << winWidth << " WHeight: " << winHeight << std::endl;
+
+    // Optionally, adjust the maximum size of the central widget
+    main->setMaximumSize(winWidth, winHeight);
+    main->resize(this->size());
+
+    QSize currentSize = main->size();
+    int currentWidth = currentSize.width();
+    int currentHeight = currentSize.height();
+    //std::cerr << "Width: " << currentWidth << " Height: " << currentHeight << std::endl;
+
+    if (myGrid != nullptr){
+        myGrid->setFixedSize(int(0.8 * currentWidth), int(0.9 * currentHeight));
+        //std::cerr << "Grid Width: " << int(0.8 * currentWidth) << " Grid Height: " << int(0.9 * currentHeight) << std::endl;
+    }
+    //addButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+    //fullScreenButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+    //minimizeButt->setMaximumSize(int(0.33 * currentWidth), int(0.09 * currentHeight));
+}
+
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
